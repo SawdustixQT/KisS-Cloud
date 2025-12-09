@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль: Услуги</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 10px; border: 1px solid #ccc; text-align: left; }
+        .action-icon { cursor: pointer; color: blue; text-decoration: none; margin-left: 10px; }
+        .action-icon:hover { color: darkblue; }
+        .add-area { margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .add-form-fields { margin-top: 10px; }
+        .add-form-fields input, .add-area button { padding: 8px; margin-right: 10px; }
+        .add-form-fields button { margin-left: 0; }
+
+        /* Стили по умолчанию скрывают элементы, управляемые ролями */
+        .role-restricted, .add-restricted {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+<h1>Управление услугами (services)</h1>
+<p id="welcomeMessage"></p>
+
+<table>
+    <thead>
+    <tr>
+        <th>Название услуги (name)</th>
+        <th>Цена (price)</th>
+        <!-- Заголовок "Действия" скрыт по умолчанию -->
+        <th class="role-restricted" id="actionsHeader">Действия</th>
+    </tr>
+    </thead>
+    <tbody id="servicesTableBody">
+    <!-- Здесь будут сгенерированы строки таблицы из JS -->
+    </tbody>
+</table>
+
+<div class="add-area">
+    <!-- Кнопка "Добавить услугу" скрыта по умолчанию -->
+    <button onclick="toggleAddForm()" class="add-restricted" id="addButton">Добавить услугу</button>
+    <button onclick="logout()">Выйти</button>
+</div>
+
+<!-- Скрытые поля для добавления услуги -->
+<!-- Также скрыты по умолчанию -->
+<div id="addFormFields" class="add-form-fields add-restricted">
+    <input type="text" id="newServiceName" placeholder="Название услуги" required>
+    <input type="number" id="newServicePrice" placeholder="Цена" required>
+    <!-- Добавлен ID для кнопки -->
+    <button onclick="addService()" id="addServiceButton">Сохранить новую услугу</button>
+    <button onclick="toggleAddForm()">Отмена</button>
+</div>
+
+<script src="profile.js"></script>
+</body>
+</html>
