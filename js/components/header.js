@@ -1,4 +1,4 @@
-export function createHeader() {
+function createHeader() {
     return `
         <header class="header">
             <div class="header-top">
@@ -57,7 +57,7 @@ export function createHeader() {
     `;
 }
 
-export function initHeader() {
+function initHeader() {
     // Инициализация обработчиков событий для шапки
     const dropdowns = document.querySelectorAll('.dropdown');
 
@@ -90,3 +90,11 @@ export function initHeader() {
         });
     }
 }
+
+document.addEventListener('DOMContentLoaded', (event) => {
+    const headerContainer = document.getElementById('header-container');
+    if (headerContainer) {
+        headerContainer.innerHTML = createHeader();
+        initHeader();
+    }
+});

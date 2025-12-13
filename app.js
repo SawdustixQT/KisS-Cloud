@@ -10,7 +10,7 @@ const PORT = 3000;
 const SECRET_KEY = 'super_secret_key_for_jwt';
 
 // Подключение к базе данных SQLite
-const db = new sqlite3.Database('../../kis.db', (err) => {
+const db = new sqlite3.Database('kis.db', (err) => {
     if (err) {
         console.error('Ошибка подключения к БД:', err.message);
     } else {
@@ -31,9 +31,12 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Отдаем статический HTML файл из папки 'public'
-app.use(express.static(path.join(__dirname, '../../', 'public')));
-console.log(path.join(__dirname, '../../', 'public'));
-
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/js', express.static(path.join(__dirname, 'js')));
+app.use('/js/components', express.static(path.join(__dirname, 'js', 'components')));
+app.use('/styles', express.static(path.join(__dirname, 'js', 'styles')));
+console.log(path.join(__dirname, 'js', 'styles'))
+console.log("HELLO")
 
 // --- Маршрут регистрации (INSERT в БД) ---
 app.post('/api/register', (req, res) => {
@@ -100,9 +103,21 @@ app.post('/api/login', (req, res) => {
     });
 });
 
+app.delete('/api/services/:id', (req, res) => {
+    const itemId = req.params.id;
+    console.log(itemId);
+    const del_query = `DELETE FROM services WHERE id = ?`;
+    db.run(del_query, [itemId], (err, result) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).send('Ошибка сервера');
+        }
+        res.status(200).send({ message: 'Успешно удалено', affectedRows: result });
+    });
+});
+
 app.get('/api/services', (req, res) => {
-    const query = `SELECT * FROM services ORDER BY name ASC`;
-    const roles_query = `SELECT * FROM services ORDER BY name ASC`;
+    const query = `SELECT * FROM services ORDER BY id ASC`;
     db.all(query, [], (err, rows) => {
         if (err) {
             console.error(err.message);
@@ -165,8 +180,8 @@ app.get('/api/profile', authenticateToken, (req, res) => {
 });
 
 app.get('/', (req, res) => {
-    res.send('Сервер авторизации работает. Используйте API-маршруты /api/login и /api/register.');
-    // res.redirect(__dirname + '../../public/kis_auth.html');
+    // res.send('Сервер авторизации работает. Используйте API-маршруты /api/login и /api/register.');
+    res.redirect('/kis_auth.html');
 
 });
 

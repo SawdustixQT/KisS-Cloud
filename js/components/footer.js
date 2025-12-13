@@ -1,4 +1,4 @@
-export function createFooter() {
+function createFooter() {
     return `
         <footer class="footer">
             <div class="footer-content">
@@ -53,7 +53,7 @@ export function createFooter() {
     `;
 }
 
-export function initFooter() {
+function initFooter() {
     // Инициализация обработчиков для футера
     const socialLinks = document.querySelectorAll('.social-link');
     socialLinks.forEach(link => {

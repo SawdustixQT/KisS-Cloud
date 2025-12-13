@@ -77,15 +77,12 @@ async function fetchServices() {
 
     } catch (error) {
         console.error("Не удалось загрузить услуги:", error);
-        renderTable([
-            { id: 1, name: "Чистка зубов", price: 1500 },
-            { id: 2, name: "Удаление аппендицита", price: 50000 }
-        ]);
     }
 }
 
 function renderTable(services) {
     servicesTableBody.innerHTML = ''; // Очищаем таблицу
+    const canDelete = (currentUserRole === 'admin')
     const canEdit = (currentUserRole === 'admin' || currentUserRole === 'support');
 
     services.forEach(service => {
@@ -96,6 +93,8 @@ function renderTable(services) {
             <!-- Ячейка действий. Если можно редактировать, наполняем контентом -->
             <td class="action-cell">
                 ${canEdit ? `<a href="#" class="action-icon" onclick="editService(${service.id})">✏️ Редактировать</a>` : ''}
+                ${canDelete ? `<a href="#" class="action-icon" onclick="deleteService(${service.id})">❌ Удалить услугу</a>` : ''}
+
             </td>
         `;
         servicesTableBody.appendChild(row);
@@ -106,6 +105,22 @@ function renderTable(services) {
         document.querySelectorAll('.action-cell').forEach(cell => {
             cell.style.display = 'none';
         });
+    }
+}
+
+function deleteService(serviceId) {
+    try {
+        const response = fetch(`/api/services/${serviceId}`, {
+            method: 'DELETE' // Или 'POST'
+        });
+        if (response.ok) {
+            // Удалить элемент из DOM после успешного ответа
+            document.getElementById(`item-${serviceId}`).remove();
+        } else {
+            console.error('Ошибка удаления:', response.statusText);
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
     }
 }
 
