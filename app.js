@@ -32,10 +32,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Отдаем статический HTML файл из папки 'public'
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/js', express.static(path.join(__dirname, 'js')));
-app.use('/js/components', express.static(path.join(__dirname, 'js', 'components')));
-app.use('/styles', express.static(path.join(__dirname, 'js', 'styles')));
-console.log(path.join(__dirname, 'js', 'styles'))
+app.use(express.static(path.join(__dirname, 'js')));
+// app.use('/js/components', express.static(path.join(__dirname, 'js', 'components')));
+// app.use('/js/styles', express.static(path.join(__dirname, 'js', 'styles')));
+console.log(path.join( 'js', 'styles'))
 console.log("HELLO")
 
 // --- Маршрут регистрации (INSERT в БД) ---
