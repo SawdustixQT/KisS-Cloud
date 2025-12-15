@@ -153,7 +153,214 @@ app.post('/api/services', (req, res) => {
 });
 
 
+// --- Маршруты для инцидентов (incidents) ---
 
+// Создание нового инцидента
+app.post('/api/incidents', authenticateToken, (req, res) => {
+    const {username, name, details } = req.body;
+    console.log()
+    if (!name) {
+        return res.status(400).json({ error: 'Требуется название инцидента (name).' });
+    }
+
+    if (!details) {
+        return res.status(400).json({ error: 'Требуется описание инцидента (details).' });
+    }
+    const username_id_query = `SELECT id FROM users WHERE name=?`;
+    let userId = ''
+    db.get(username_id_query, [username], (err, row) => {
+        if (row) {
+            userId = row.id;
+            console.log(`Получен ID пользователя: ${userId}`);
+        }
+        else {
+            userId = 0
+        }
+        const query = `INSERT INTO incidents (user_id, name, details) VALUES (?, ?, ?)`;
+        db.run(query, [userId, name, details], function(err) {
+            if (err) {
+                console.error(err.message);
+                return res.status(500).json({ error: 'Ошибка при создании инцидента в БД.' });
+            }
+
+            // Возвращаем успех и данные нового инцидента
+            res.status(201).json({
+                message: 'Инцидент успешно создан.',
+                id: this.lastID,
+                user_id: userId,
+                name: name,
+                details: details,
+                created_at: new Date().toISOString()
+            });
+        });
+    });
+
+});
+
+// Получение всех инцидентов (только для admin и support)
+app.get('/api/incidents', authenticateToken, (req, res) => {
+    // Проверяем роль пользователя
+    const allowedRoles = ['admin', 'support'];
+    if (!allowedRoles.includes(req.user.role)) {
+        return res.status(403).json({ error: 'Недостаточно прав для просмотра инцидентов.' });
+    }
+
+    const query = `SELECT * FROM incidents`;
+    db.all(query, [], (err, rows) => {
+        if (err) {
+            console.error(err.message);
+            return res.status(500).json({ error: 'Ошибка сервера при получении инцидентов.' });
+        }
+        console.log(rows)
+        // Форматируем дату для удобного отображения
+        const formattedRows = rows.map(row => ({
+            ...row,
+            created_at: new Date(row.created_at).toLocaleString('ru-RU')
+        }));
+
+        res.json(formattedRows);
+    });
+});
+
+// Получение инцидентов конкретного пользователя
+app.get('/api/my-incidents', authenticateToken, (req, res) => {
+    const userId = req.user.id;
+
+    const query = `SELECT * FROM incidents WHERE user_id = ? ORDER BY created_at DESC`;
+    db.all(query, [userId], (err, rows) => {
+        if (err) {
+            console.error(err.message);
+            return res.status(500).json({ error: 'Ошибка сервера при получении инцидентов.' });
+        }
+
+        // Форматируем дату для удобного отображения
+        const formattedRows = rows.map(row => ({
+            ...row,
+            created_at: new Date(row.created_at).toLocaleString('ru-RU')
+        }));
+
+        res.json(formattedRows);
+    });
+});
+
+// Получение конкретного инцидента по ID
+app.get('/api/incidents/:id', authenticateToken, (req, res) => {
+    const incidentId = req.params.id;
+
+    const query = `SELECT * FROM incidents WHERE id = ?`;
+    db.get(query, [incidentId], (err, row) => {
+        if (err) {
+            console.error(err.message);
+            return res.status(500).json({ error: 'Ошибка сервера при получении инцидента.' });
+        }
+
+        if (!row) {
+            return res.status(404).json({ error: 'Инцидент не найден.' });
+        }
+
+        // Проверяем права доступа (пользователь может видеть только свои инциденты, если не admin/support)
+        if (req.user.role !== 'admin' && req.user.role !== 'support' && req.user.id !== row.user_id) {
+            return res.status(403).json({ error: 'Нет доступа к этому инциденту.' });
+        }
+
+        // Форматируем дату
+        row.created_at = new Date(row.created_at).toLocaleString('ru-RU');
+        res.json(row);
+    });
+});
+
+// Обновление инцидента
+app.put('/api/incidents/:id', authenticateToken, (req, res) => {
+    const incidentId = req.params.id;
+    const { name, details } = req.body;
+
+    if (!name && !details) {
+        return res.status(400).json({ error: 'Требуется хотя бы одно поле для обновления (name или details).' });
+    }
+
+    // Сначала проверяем существование инцидента и права доступа
+    const checkQuery = `SELECT * FROM incidents WHERE id = ?`;
+    db.get(checkQuery, [incidentId], (err, incident) => {
+        if (err) {
+            console.error(err.message);
+            return res.status(500).json({ error: 'Ошибка сервера.' });
+        }
+
+        if (!incident) {
+            return res.status(404).json({ error: 'Инцидент не найден.' });
+        }
+
+        // Проверяем права доступа (только создатель или admin/support)
+        if (req.user.role !== 'admin' && req.user.role !== 'support' && req.user.id !== incident.user_id) {
+            return res.status(403).json({ error: 'Нет прав для обновления этого инцидента.' });
+        }
+
+        // Подготавливаем запрос на обновление
+        const updates = [];
+        const values = [];
+
+        if (name) {
+            updates.push('name = ?');
+            values.push(name);
+        }
+
+        if (details) {
+            updates.push('details = ?');
+            values.push(details);
+        }
+
+        values.push(incidentId);
+
+        const updateQuery = `UPDATE incidents SET ${updates.join(', ')} WHERE id = ?`;
+        db.run(updateQuery, values, function(err) {
+            if (err) {
+                console.error(err.message);
+                return res.status(500).json({ error: 'Ошибка при обновлении инцидента.' });
+            }
+
+            res.json({
+                message: 'Инцидент успешно обновлен.',
+                affectedRows: this.changes
+            });
+        });
+    });
+});
+
+// Удаление инцидента
+app.delete('/api/incidents/:id', authenticateToken, (req, res) => {
+    const incidentId = req.params.id;
+
+    // Сначала проверяем существование инцидента и права доступа
+    const checkQuery = `SELECT * FROM incidents WHERE id = ?`;
+    db.get(checkQuery, [incidentId], (err, incident) => {
+        if (err) {
+            console.error(err.message);
+            return res.status(500).json({ error: 'Ошибка сервера.' });
+        }
+
+        if (!incident) {
+            return res.status(404).json({ error: 'Инцидент не найден.' });
+        }
+
+        // Проверяем права доступа (только создатель или admin)
+        if (req.user.role !== 'admin' && req.user.id !== incident.user_id) {
+            return res.status(403).json({ error: 'Нет прав для удаления этого инцидента.' });
+        }
+
+        const deleteQuery = `DELETE FROM incidents WHERE id = ?`;
+        db.run(deleteQuery, [incidentId], function(err) {
+            if (err) {
+                console.error(err.message);
+                return res.status(500).json({ error: 'Ошибка при удалении инцидента.' });
+            }
+
+            res.json({
+                message: 'Инцидент успешно удален.',
+                affectedRows: this.changes
+            });
+        });
+    });
+});
 
 
 
@@ -178,6 +385,8 @@ app.get('/api/profile', authenticateToken, (req, res) => {
         userData: req.user
     });
 });
+
+
 
 app.get('/', (req, res) => {
     // res.send('Сервер авторизации работает. Используйте API-маршруты /api/login и /api/register.');

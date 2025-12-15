@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Управление инцидентами</title>
+    <style>
+        /* ... (остальные стили остались без изменений) ... */
+        .role-restricted { display: none; }
+        .add-restricted { display: none; }
+        .guest-user-section { display: none; }
+        .admin-support-section { display: none; }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+            /* Добавлено правило для автоматического растягивания */
+            table-layout: fixed;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            /* Добавлено правило для предотвращения переноса текста в узких столбцах */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        textarea {
+            width: 300px;
+            height: 150px;
+            margin-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        /* --- НОВЫЕ СТИЛИ ДЛЯ РАЗМЕРА СТОЛБЦОВ --- */
+
+        /* 2-й столбец: Уменьшен до 3 символов (~3em) */
+        .small-column {
+            width: 6em;
+        }
+
+        /* 4-й столбец: Увеличен (остальное доступное пространство) */
+        /* Мы используем ширину 100% для таблицы и фиксированную ширину для остальных */
+        /* и свойство table-layout: fixed; чтобы 4-й столбец занял оставшееся место */
+        .large-column {
+            /* Можно явно указать ширину, например, 50% */
+            width: 50%;
+        }
+    </style>
+    <script src="/js/components/footer.js"></script>
+    <script src="/js/components/header.js"></script>
+</head>
+<body>
+    <h1>Управление инцидентами</h1>
+
+    <!-- Приветствие -->
+    <div id="welcomeMessage"></div>
+
+    <!-- Секция для гостей и пользователей -->
+    <div id="incidentFormSection" class="guest-user-section">
+        <h2>Создать новый инцидент</h2>
+        <div class="form-group">
+            <label for="incidentName">Имя:</label><br>
+            <input type="text" id="incidentName" style="width: 300px;">
+        </div>
+        <div class="form-group">
+            <label for="incidentDetails">Детали инцидента:</label><br>
+            <textarea id="incidentDetails"></textarea>
+        </div>
+        <button onclick="createIncident()">Создать инцидент</button>
+        <p id="formMessage"></p>
+    </div>
+
+    <!-- Секция для администраторов и поддержки -->
+    <div id="incidentsTableSection" class="admin-support-section">
+        <h2>Все инциденты</h2>
+        <table id="incidentsTable">
+            <thead>
+                <tr>
+                    <!-- 1-й столбец: ID (ширина по умолчанию) -->
+                    <th class="small-column">ID</th>
+                    <!-- 2-й столбец: User ID (уменьшен) -->
+                    <th class="small-column">User ID</th>
+                    <!-- 3-й столбец: Имя (ширина по умолчанию) -->
+                    <th>Имя</th>
+                    <!-- 4-й столбец: Детали (увеличен) -->
+                    <th class="large-column">Детали</th>
+                </tr>
+            </thead>
+            <tbody id="incidentsTableBody">
+                <!-- Данные будут загружены здесь -->
+            </tbody>
+        </table>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <button onclick="logout()">Выйти</button>
+    </div>
+
+    <script src="incidents.js"></script>
+</body>
+</html>
