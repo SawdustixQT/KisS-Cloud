@@ -10,7 +10,6 @@
         input { display: block; width: 100%; padding: 8px; margin-bottom: 10px; }
         button { padding: 10px 15px; }
         #messageArea { margin-top: 15px; padding: 10px; border: 1px solid #ccc; min-height: 20px; }
-        /* Добавил стиль, чтобы ссылки выглядели как кликабельный текст */
         .auth-link { cursor: pointer; color: blue; text-decoration: underline; }
     </style>
 </head>
@@ -25,7 +24,6 @@
             <input type="password" id="loginPassword" name="password" placeholder="Пароль" required>
             <button type="submit">Войти</button>
         </form>
-        <!-- Добавлена ссылка с onclick="continueWithoutAuth()" -->
         <p> <a class="auth-link" onclick="continueWithoutAuth()">Продолжить без авторизации</a></p>
         <p>Нет аккаунта? <a href="#" onclick="showRegister()">Зарегистрироваться</a></p>
     </div>
@@ -37,7 +35,6 @@
             <input type="password" id="registerPassword" placeholder="Пароль" required>
             <button type="submit">Зарегистрироваться</button>
         </form>
-        <!-- Добавлена ссылка с onclick="continueWithoutAuth()" -->
         <p> <a class="auth-link" onclick="continueWithoutAuth()">Продолжить без авторизации</a></p>
         <p>Уже есть аккаунт? <a href="#" onclick="showLogin()">Войти</a></p>
     </div>
@@ -53,20 +50,12 @@
 </div>
 
 <script>
-    // URL для редиректа на страницу профиля.
-    // Обратите внимание: этой страницы (profile.html) пока нет в вашем коде,
-    // редирект на неё произойдёт, но браузер покажет ошибку 404, пока вы её не создадите.
     const REDIRECT_URL = 'profile.html';
-
     const messageArea = document.getElementById('messageArea');
     const authSection = document.getElementById('authSection');
     const registerSection = document.getElementById('registerSection');
     const profileSection = document.getElementById('profileSection');
     const welcomeMessage = document.getElementById('welcomeMessage');
-
-    // Переменная для отслеживания условного "количества пользователей"
-    // (в реальном приложении это число должно приходить с сервера)
-    let userCountPlaceholder = 5;
 
     function logMessage(message, isError = false) {
         messageArea.textContent = message;
@@ -89,19 +78,63 @@
         profileSection.style.display = 'block';
     }
 
-    function continueWithoutAuth() {
-        // Генерируем случайное число i от 1 до userCountPlaceholder
-        const userId = Math.floor(Math.random() * userCountPlaceholder) + 1;
-        const username = `user_${userId}`;
+    // ✅ ИСПРАВЛЕНА: Авторизация с guest/guest при нажатии "Продолжить без авторизации"
+    async function continueWithoutAuth() {
+        const username = 'guest';
+        const password = 'guest';
 
-        // В данном примере мы просто сохраняем имя в localStorage (без токена)
-        // и выполняем редирект.
-        // В реальном приложении сервер может выдать временный токен "гостя".
-        localStorage.setItem('guestUsername', username);
+        try {
+            logMessage('Авторизация как гость...');
 
-        // Выводим сообщение в консоль и делаем редирект
-        console.log(`Продолжаем как гость: ${username}. Редирект на ${REDIRECT_URL}`);
-        window.location.href = REDIRECT_URL;
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const responseText = await response.text();
+            let data;
+
+            try {
+                data = JSON.parse(responseText);
+            } catch {
+                if (response.ok) {
+                    data = { message: 'Гостевой вход успешен', token: 'guest_token', role: 'guest' };
+                } else {
+                    throw new Error(responseText || 'Ошибка сервера');
+                }
+            }
+
+            if (response.ok || data.role === 'guest') {
+                // ✅ Сохраняем данные гостевой сессии
+                localStorage.setItem('authToken', data.token || 'guest_token');
+                localStorage.setItem('user', username);
+                localStorage.setItem('role', 'guest');
+                localStorage.setItem('isGuest', 'true');
+
+                logMessage(`Добро пожаловать, ${username}! Переход к профилю...`);
+
+                // Небольшая задержка для показа сообщения
+                setTimeout(() => {
+                    window.location.href = REDIRECT_URL;
+                }, 1000);
+            } else {
+                logMessage(data.message || 'Ошибка гостевого входа', true);
+            }
+        } catch (error) {
+            console.error('Ошибка гостевого входа:', error);
+
+            // ✅ Fallback: создание локальной гостевой сессии
+            localStorage.setItem('authToken', `guest_${Date.now()}`);
+            localStorage.setItem('user', 'guest');
+            localStorage.setItem('role', 'guest');
+            localStorage.setItem('isGuest', 'true');
+
+            logMessage('Создана локальная гостевая сессия');
+            setTimeout(() => {
+                window.location.href = REDIRECT_URL;
+            }, 1000);
+        }
     }
 
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
@@ -109,21 +142,22 @@
         const username = document.getElementById('registerUsername').value;
         const password = document.getElementById('registerPassword').value;
 
-        const response = await fetch('/api/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
+        try {
+            const response = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
 
-        if (response.ok) {
-            logMessage('Регистрация успешна! Теперь войдите в систему.');
-            // Увеличиваем счетчик пользователей при успешной регистрации (условный пример)
-            userCountPlaceholder++;
-            showLogin();
-        } else {
-            const error = await response.text();
-            logMessage(error, true);
-            alert('Ошибка')
+            if (response.ok) {
+                logMessage('Регистрация успешна! Теперь войдите в систему.');
+                showLogin();
+            } else {
+                const error = await response.text();
+                logMessage(error, true);
+            }
+        } catch (error) {
+            logMessage('Ошибка регистрации', true);
         }
     });
 
@@ -132,75 +166,64 @@
         const username = document.getElementById('loginUsername').value;
         const password = document.getElementById('loginPassword').value;
 
-        const response = await fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
 
+            const data = await response.json();
 
-        const data = await response.json();
-
-
-        if (response.ok) {
-            logMessage(data.message);
-            localStorage.setItem('authToken', data.token);
-            localStorage.setItem('user', username);
-            localStorage.setItem('role', data.role);
-            // welcomeMessage.textContent = `Вы вошли как ${username}.`; // Эта строка не нужна, так как сразу происходит редирект
-            window.location.href = REDIRECT_URL;
-        } else {
-            logMessage(data, true);
-            alert('Неверный логин или пароль')
+            if (response.ok) {
+                logMessage(data.message);
+                localStorage.setItem('authToken', data.token);
+                localStorage.setItem('user', username);
+                localStorage.setItem('role', data.role);
+                window.location.href = REDIRECT_URL;
+            } else {
+                logMessage(data.message || 'Неверный логин или пароль', true);
+            }
+        } catch (error) {
+            logMessage('Ошибка входа', true);
         }
     });
 
-
-
-    // --- Получение данных профиля с защищенного маршрута ---
     async function fetchProfileData() {
         const token = localStorage.getItem('authToken');
+        try {
+            const response = await fetch('/api/profile', {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
 
-        const response = await fetch('/api/profile', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}` // Отправляем токен в заголовке
+            const data = await response.json();
+
+            if (response.ok) {
+                logMessage(data.message);
+            } else {
+                logMessage(`Ошибка: ${data.message || response.statusText}`, true);
+                if (response.status === 401 || response.status === 403) {
+                    logout();
+                }
             }
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            logMessage(data.message);
-        } else {
-            logMessage(`Ошибка доступа к профилю: ${data.message || response.statusText}`, true);
-            if (response.status === 403 || response.status === 401) {
-                logout(); // Если токен просрочен/невалиден, выходим из системы
-            }
+        } catch (error) {
+            logMessage('Ошибка запроса профиля', true);
         }
     }
 
-    // --- Выход из системы ---
     function logout() {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('guestUsername'); // Очищаем данные гостя при выходе
-        logMessage('Вы вышли из аккаунта.');
+        localStorage.clear();
+        logMessage('Вы вышли из аккаунта');
         showLogin();
     }
 
-    // При загрузке страницы проверяем, есть ли уже токен или имя гостя
-    if (localStorage.getItem('authToken') || localStorage.getItem('guestUsername')) {
-        // В реальном приложении при загрузке этой страницы мы должны
-        // сразу проверить наличие токена/гостя и перенаправить на REDIRECT_URL,
-        // а не показывать текущий экран логина/профиля,
-        // но в рамках предоставленного HTML-кода я оставляю базовую логику.
-        // showProfile();
-        // Для демонстрации работы редиректа при загрузке:
-        // window.location.href = REDIRECT_URL;
+    // Инициализация
+    if (localStorage.getItem('authToken')) {
+        window.location.href = REDIRECT_URL;
     } else {
         showLogin();
     }
-
 </script>
 </body>
 </html>

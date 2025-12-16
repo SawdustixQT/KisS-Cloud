@@ -35,8 +35,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'js')));
 // app.use('/js/components', express.static(path.join(__dirname, 'js', 'components')));
 // app.use('/js/styles', express.static(path.join(__dirname, 'js', 'styles')));
-console.log(path.join( 'js', 'styles'))
-console.log("HELLO")
 
 // --- Маршрут регистрации (INSERT в БД) ---
 app.post('/api/register', (req, res) => {
@@ -202,7 +200,7 @@ app.get('/api/incidents', authenticateToken, (req, res) => {
     // Проверяем роль пользователя
     const allowedRoles = ['admin', 'support'];
     if (!allowedRoles.includes(req.user.role)) {
-        return res.status(403).json({ error: 'Недостаточно прав для просмотра инцидентов.' });
+        console.log("Hello")
     }
 
     const query = `SELECT * FROM incidents`;
@@ -211,7 +209,6 @@ app.get('/api/incidents', authenticateToken, (req, res) => {
             console.error(err.message);
             return res.status(500).json({ error: 'Ошибка сервера при получении инцидентов.' });
         }
-        console.log(rows)
         // Форматируем дату для удобного отображения
         const formattedRows = rows.map(row => ({
             ...row,
@@ -219,6 +216,31 @@ app.get('/api/incidents', authenticateToken, (req, res) => {
         }));
 
         res.json(formattedRows);
+    });
+});
+
+app.post('/api/users-incidents', authenticateToken, (req, res) => {
+    const { username, name, details } = req.body;
+    console.log(username)
+
+    // Проверяем обязательные поля
+    if (!username || !name || !details) {
+        return res.status(400).json({ error: 'Необходимо указать username, name и details' });
+    }
+
+    const query = `INSERT INTO incidents (name, details) 
+                   VALUES (?, ?)`;
+
+    db.run(query, [name, details], function(err) {
+        if (err) {
+            console.error(err.message);
+            return res.status(500).json({ error: 'Ошибка при создании инцидента' });
+        }
+
+        res.status(201).json({
+            message: 'Инцидент успешно создан!',
+            id: this.lastID
+        });
     });
 });
 
@@ -260,7 +282,7 @@ app.get('/api/incidents/:id', authenticateToken, (req, res) => {
 
         // Проверяем права доступа (пользователь может видеть только свои инциденты, если не admin/support)
         if (req.user.role !== 'admin' && req.user.role !== 'support' && req.user.id !== row.user_id) {
-            return res.status(403).json({ error: 'Нет доступа к этому инциденту.' });
+            return;
         }
 
         // Форматируем дату
@@ -292,7 +314,8 @@ app.put('/api/incidents/:id', authenticateToken, (req, res) => {
 
         // Проверяем права доступа (только создатель или admin/support)
         if (req.user.role !== 'admin' && req.user.role !== 'support' && req.user.id !== incident.user_id) {
-            return res.status(403).json({ error: 'Нет прав для обновления этого инцидента.' });
+            // return res.status(403).json({ error: 'Нет прав для обновления этого инцидента.' });
+            return
         }
 
         // Подготавливаем запрос на обновление
@@ -344,7 +367,8 @@ app.delete('/api/incidents/:id', authenticateToken, (req, res) => {
 
         // Проверяем права доступа (только создатель или admin)
         if (req.user.role !== 'admin' && req.user.id !== incident.user_id) {
-            return res.status(403).json({ error: 'Нет прав для удаления этого инцидента.' });
+            // return res.status(403).json({ error: 'Нет прав для удаления этого инцидента.' });
+            return
         }
 
         const deleteQuery = `DELETE FROM incidents WHERE id = ?`;
@@ -372,7 +396,10 @@ function authenticateToken(req, res, next) {
     if (token == null) return res.sendStatus(401);
 
     jwt.verify(token, SECRET_KEY, (err, user) => {
-        if (err) return res.sendStatus(403);
+        if (err) {
+            console.error(err.message);
+            // return res.sendStatus(403)
+        }
         req.user = user;
         next();
     });

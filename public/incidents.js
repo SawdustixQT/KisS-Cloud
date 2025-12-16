@@ -53,7 +53,6 @@ function setupUIByRole() {
 }
 
 // Создание нового инцидента
-// Создание нового инцидента
 async function createIncident() {
     const name = incidentNameInput.value.trim();
     const details = incidentDetailsInput.value.trim();
@@ -71,13 +70,13 @@ async function createIncident() {
     }
 
     // Получаем токен из localStorage
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('authToken') ;
     if (!token) {
         formMessage.textContent = 'Ошибка авторизации. Пожалуйста, войдите заново.';
         formMessage.style.color = 'red';
         return;
     }
-    const username = localStorage.getItem('user') || '';
+    const username = localStorage.getItem('user');
 
     const incidentData = {
         username: username,
@@ -86,7 +85,7 @@ async function createIncident() {
     };
 
     try {
-        const response = await fetch('/api/incidents', {
+        const response = await fetch('/api/users-incidents', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -98,6 +97,7 @@ async function createIncident() {
         if (!response.ok) {
             // Получаем текст ошибки от сервера
             const errorText = await response.text();
+            console.log(response)
             throw new Error(`Ошибка при создании инцидента: ${response.status} ${errorText}`);
         }
 
@@ -166,7 +166,7 @@ function renderIncidentsTable(incidents) {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${incident.id || 'N/A'}</td>
-            <td>${incident.user_id || currentUserId}</td>
+            <td>${incident.user_id}</td>
             <td>${incident.name}</td>
             <td style="max-width: 300px; word-wrap: break-word;">${incident.details}</td>
         `;
