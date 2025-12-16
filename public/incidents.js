@@ -164,17 +164,36 @@ function renderIncidentsTable(incidents) {
 
     incidents.forEach(incident => {
         const row = document.createElement('tr');
+
+        // Создаем содержимое строки
+        // В последнем <td> создаем кнопку
         row.innerHTML = `
             <td>${incident.id || 'N/A'}</td>
             <td>${incident.user_id}</td>
             <td>${incident.name}</td>
             <td style="max-width: 300px; word-wrap: break-word;">${incident.details}</td>
+            <td>
+                <button class="done-btn">Выполнено</button>
+            </td>
         `;
+
+        // Находим кнопку внутри только что созданной строки
+        const doneBtn = row.querySelector('.done-btn');
+
+        // Добавляем обработчик нажатия на кнопку
+        doneBtn.addEventListener('click', () => {
+            // Меняем цвет фона всей строки
+            row.style.backgroundColor = '#d4edda'; // Светло-зеленый цвет
+
+            // Опционально: можно отключить кнопку после нажатия
+            doneBtn.disabled = true;
+            doneBtn.textContent = 'Завершено';
+            doneBtn.style.cursor = 'default';
+        });
+
         incidentsTableBody.appendChild(row);
     });
 }
-
-
 
 
 // Выход из системы
