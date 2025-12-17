@@ -34,6 +34,11 @@ function createHeader() {
                 </div>
                 
                 <div class="nav-item dropdown">
+                    <a href="/incedents.html">Инцеденты</a>
+                    <a href="/profile.html">Услуги</a>
+                </div>
+                
+                <div class="nav-item dropdown">
                     <span>Помощь</span>
                     <div class="dropdown-content">
                         <a href="#">База знаний</a>

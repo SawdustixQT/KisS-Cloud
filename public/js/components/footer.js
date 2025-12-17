@@ -65,10 +65,43 @@ function initFooter() {
     });
 }
 
+async function getMessenger(){
+    try {
+        // 1. Загружаем файл messenger.html
+        const response = await fetch('messenger.html');
+        const htmlString = await response.text();
+
+        // 2. Создаем виртуальный документ для поиска элементов
+        const parser = new DOMParser();
+        const messengerDoc = parser.parseFromString(htmlString, 'text/html');
+
+        const styles = messengerDoc.querySelectorAll('style');
+        styles.forEach(styleTag => {
+            document.head.appendChild(styleTag.cloneNode(true));
+        });
+
+        // 3. Находим нужный элемент в загруженном документе
+        const messengerElement = messengerDoc.getElementById('supportChat');
+        if (messengerElement) {
+            messengerElement.style.cursor = 'pointer';
+            messengerElement.addEventListener('click', () => {
+                window.location.href = 'messenger.html'; // Переход на страницу
+            });
+            document.body.appendChild(messengerElement);
+        }
+    } catch (error) {
+        console.error('Ошибка при загрузке messenger.html:', error);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', (event) => {
     const footerContainer = document.getElementById('footer-container');
+
     if (footerContainer) {
         footerContainer.innerHTML = createFooter();
         initFooter();
     }
+    getMessenger()
+
 });
+
